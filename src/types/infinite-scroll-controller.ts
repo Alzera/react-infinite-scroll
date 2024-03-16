@@ -1,3 +1,3 @@
-export default interface InfiniteScrollController {
+export interface InfiniteScrollController {
   resetPage: (reload?: boolean) => void
 }

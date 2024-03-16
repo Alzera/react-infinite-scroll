@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { PullToRefreshState } from "../types/pull-to-refresh-state";
 
 export const usePullToRefresh = (
   onRefresh: () => Promise<void>,
@@ -9,7 +10,16 @@ export const usePullToRefresh = (
   const [pullPosition, setPullPosition] = useState(0);
   const pullPositionRef = useRef(0);
   pullPositionRef.current = pullPosition
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [state, setState] = useState<PullToRefreshState>(PullToRefreshState.stale);
+
+  useEffect(() => {
+    if (state == PullToRefreshState.loading) {
+      (async () => {
+        await onRefresh();
+        setState(PullToRefreshState.stale)
+      })()
+    }
+  }, [state])
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -37,11 +47,7 @@ export const usePullToRefresh = (
       setPullPosition(0)
       if (!shouldRefreshing) return;
 
-      setIsRefreshing(true);
-      setTimeout(async () => {
-        await onRefresh();
-        setIsRefreshing(false);
-      }, 500);
+      setState(PullToRefreshState.loading);
     }
 
     window.addEventListener('touchstart', pullStart, { passive: true });
@@ -55,5 +61,5 @@ export const usePullToRefresh = (
     };
   });
 
-  return { isRefreshing, pullPosition }
+  return { state, pullPosition }
 }

@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from "react"
-import { InfiniteScrollState } from "./types/infinite-scroll-state"
+import { useEffect } from "react"
 import { usePullToRefresh } from "./utilities/use-pull-to-refresh"
-import type InfiniteScrollController from "./types/infinite-scroll-controller"
-import type InfiniteScrollParam from "./types/infinite-scroll-param"
+import { useLoadMore } from "./utilities/use-load-more"
+import { PullToRefreshState } from "./types/pull-to-refresh-state"
+import { LoadMoreState } from "./types/load-more-state"
+import type { InfiniteScrollController } from "./types/infinite-scroll-controller"
+import type { LoadMoreParam } from "./types/load-more-param"
 import type Styleable from "./types/styleable"
 
 function InfiniteScroll({
@@ -14,10 +16,10 @@ function InfiniteScroll({
   onController,
   onLoadMore,
 
-  refreshView,
-  onRefresh,
   pullMaxLength = 100,
   pullThreshold = 100,
+  refreshView,
+  onRefresh,
 
   style,
   className,
@@ -28,28 +30,23 @@ function InfiniteScroll({
   emptyView?: React.ReactNode
   isReverse?: boolean
   onController?: (controller: InfiniteScrollController | null) => void
-  onLoadMore: (param: InfiniteScrollParam) => InfiniteScrollParam | Promise<InfiniteScrollParam>
+  onLoadMore: (param: LoadMoreParam) => Promise<LoadMoreParam>
 
-  refreshView?: (isRefreshing: boolean, pullPosition: number) => React.ReactNode
-  onRefresh?: () => Promise<void>;
   pullMaxLength?: number;
   pullThreshold?: number;
+  refreshView?: (state: PullToRefreshState, pullPosition: number) => React.ReactNode
+  onRefresh?: () => Promise<void>;
 } & Styleable) {
-  const anchor = useRef<HTMLDivElement>(null);
-  const [param, setParam] = useState<InfiniteScrollParam>({
-    state: InfiniteScrollState.stale,
-    page: 0,
-  });
-  const { isRefreshing, pullPosition } = usePullToRefresh(async () => {
-    console.log("Refreshing")
-    onRefresh?.()
+  const { param, setParam, anchor } = useLoadMore(onLoadMore)
+  const { state, pullPosition } = usePullToRefresh(async () => {
+    await onRefresh?.()
   }, pullMaxLength, pullThreshold)
 
   useEffect(() => {
     onController?.({
       resetPage: (reload: boolean = false) => {
         setParam({
-          state: reload ? InfiniteScrollState.loading : InfiniteScrollState.stale,
+          state: reload ? LoadMoreState.loading : LoadMoreState.stale,
           page: 0,
         })
       }
@@ -60,41 +57,16 @@ function InfiniteScroll({
     };
   }, []);
 
-  useEffect(() => {
-    if (!anchor.current) return
-    const observer = new IntersectionObserver(async (entries) => {
-      if (entries[0].isIntersecting) {
-        setParam(d => {
-          if (d.state != InfiniteScrollState.stale) return d
-          const newD = structuredClone(d)
-          newD.state = InfiniteScrollState.loading
-          return newD
-        })
-      }
-    });
-    observer.observe(anchor.current);
-  }, [anchor]);
-
-  useEffect(() => {
-    if (param.state == InfiniteScrollState.loading) {
-      (async () => {
-        const p = await onLoadMore(structuredClone(param))
-        if (p.state == InfiniteScrollState.loading) p.state = InfiniteScrollState.stale
-        setParam(p)
-      })()
-    }
-  }, [param]);
-
-  const indicator = param.state == InfiniteScrollState.loading
+  const indicator = param.state == LoadMoreState.loading
     ? loadingView || <span>Loading...</span>
-    : (param.state == InfiniteScrollState.noMore
+    : (param.state == LoadMoreState.noMore
       ? noMoreView || <span>No more item!</span>
-      : (param.state == InfiniteScrollState.empty
+      : (param.state == LoadMoreState.empty
         ? emptyView || <span>List is empty!</span> : null))
 
   const refresh = onRefresh
     && (refreshView
-      ? refreshView(isRefreshing, pullPosition)
+      ? refreshView(state, pullPosition)
       : <div style={{
         position: "absolute",
         bottom: "100%",
@@ -108,7 +80,7 @@ function InfiniteScroll({
         justifyContent: "center",
         alignItems: "center",
         transition: "transform 250ms ease-in",
-        transform: `translateY(${isRefreshing ? 100 : pullPosition}px)`,
+        transform: `translateY(${state ? 100 : pullPosition}px)`,
       }}>
         Pull to refresh!
       </div>)
@@ -134,4 +106,4 @@ function InfiniteScroll({
   );
 }
 
-export { InfiniteScroll as default, InfiniteScrollController, InfiniteScrollParam, InfiniteScrollState }
+export { InfiniteScroll as default, InfiniteScrollController, LoadMoreParam, LoadMoreState, PullToRefreshState }

@@ -1,6 +1,6 @@
 'use client'
 
-import InfiniteScroll, { InfiniteScrollState } from '@alzera/react-infinite-scroll'
+import InfiniteScroll, { LoadMoreState } from '@alzera/react-infinite-scroll'
 import { useState } from "react";
 
 interface Post {
@@ -22,7 +22,7 @@ export default function Home() {
           const data = await res.json();
           setPosts((prevPosts) => [...prevPosts, ...data]);
           param.page++
-          if (param.page > 2) param.state = InfiniteScrollState.noMore
+          if (param.page > 2) param.state = LoadMoreState.noMore
           return param
         }}
         onRefresh={async () => {
