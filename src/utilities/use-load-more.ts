@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { LoadMoreParam } from "../types/load-more-param";
 import { LoadMoreState } from "../types/load-more-state";
 
-export const useLoadMore = (
+export const useLoadMore = <T extends HTMLElement>(
   onLoadMore: (param: LoadMoreParam) => Promise<LoadMoreParam>,
 ) => {
-  const anchor = useRef<HTMLDivElement>(null);
+  const anchor = useRef<T>(null);
   const [param, setParam] = useState<LoadMoreParam>({
     state: LoadMoreState.stale,
     page: 0,

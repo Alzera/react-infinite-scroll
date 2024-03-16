@@ -37,8 +37,8 @@ function InfiniteScroll({
   refreshView?: (state: PullToRefreshState, pullPosition: number) => React.ReactNode
   onRefresh?: () => Promise<void>;
 } & Styleable) {
-  const { param, setParam, anchor } = useLoadMore(onLoadMore)
-  const { state, pullPosition } = usePullToRefresh(async () => {
+  const { param, setParam, anchor } = useLoadMore<HTMLDivElement>(onLoadMore)
+  const { state, pullPosition, element } = usePullToRefresh<HTMLDivElement>(async () => {
     await onRefresh?.()
   }, pullMaxLength, pullThreshold)
 
@@ -86,7 +86,7 @@ function InfiniteScroll({
       </div>)
 
   return (
-    <div className={className} style={{
+    <div ref={element} className={className} style={{
       ...style,
       position: "relative",
       overflow: "hidden",

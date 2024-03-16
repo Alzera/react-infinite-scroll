@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { PullToRefreshState } from "../types/pull-to-refresh-state";
 
-export const usePullToRefresh = (
+export const usePullToRefresh = <T extends HTMLElement>(
   onRefresh: () => Promise<void>,
   pullMaxLength = 100,
   pullThreshold = 100
 ) => {
+  const element = useRef<T>(null);
   const pullStartPosition = useRef(0);
   const [pullPosition, setPullPosition] = useState(0);
   const pullPositionRef = useRef(0);
@@ -22,7 +23,9 @@ export const usePullToRefresh = (
   }, [state])
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    // if (typeof window === 'undefined') return;
+    const el = element.current?.parentElement
+    if(el == null) return
 
     const pullStart = ({ targetTouches }: TouchEvent) => {
       const touch = targetTouches[0];
@@ -50,16 +53,16 @@ export const usePullToRefresh = (
       setState(PullToRefreshState.loading);
     }
 
-    window.addEventListener('touchstart', pullStart, { passive: true });
-    window.addEventListener('touchmove', pulling, { passive: true });
-    window.addEventListener('touchend', endPull, { passive: true });
+    el.addEventListener('touchstart', pullStart, { passive: true });
+    el.addEventListener('touchmove', pulling, { passive: true });
+    el.addEventListener('touchend', endPull, { passive: true });
 
     return () => {
-      window.removeEventListener('touchstart', pullStart);
-      window.removeEventListener('touchmove', pulling);
-      window.removeEventListener('touchend', endPull);
+      el.removeEventListener('touchstart', pullStart);
+      el.removeEventListener('touchmove', pulling);
+      el.removeEventListener('touchend', endPull);
     };
   });
 
-  return { state, pullPosition }
+  return { state, pullPosition, element }
 }
