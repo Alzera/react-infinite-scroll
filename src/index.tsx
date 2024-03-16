@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { InfiniteScrollState } from "./types/infinite-scroll-state"
+import { usePullToRefresh } from "./utilities/use-pull-to-refresh"
 import type InfiniteScrollController from "./types/infinite-scroll-controller"
 import type InfiniteScrollParam from "./types/infinite-scroll-param"
 import type Styleable from "./types/styleable"
@@ -10,8 +11,14 @@ function InfiniteScroll({
   noMoreView,
   emptyView,
   isReverse,
-  controller,
-  loadMore,
+  onController,
+  onLoadMore,
+
+  refreshView,
+  onRefresh,
+  pullMaxLength = 100,
+  pullThreshold = 100,
+
   style,
   className,
 }: {
@@ -20,29 +27,38 @@ function InfiniteScroll({
   noMoreView?: React.ReactNode
   emptyView?: React.ReactNode
   isReverse?: boolean
-  controller?: (controller: InfiniteScrollController | null) => void
-  loadMore: (param: InfiniteScrollParam) => InfiniteScrollParam | Promise<InfiniteScrollParam>
+  onController?: (controller: InfiniteScrollController | null) => void
+  onLoadMore: (param: InfiniteScrollParam) => InfiniteScrollParam | Promise<InfiniteScrollParam>
+
+  refreshView?: (isRefreshing: boolean, pullPosition: number) => React.ReactNode
+  onRefresh?: () => Promise<void>;
+  pullMaxLength?: number;
+  pullThreshold?: number;
 } & Styleable) {
   const anchor = useRef<HTMLDivElement>(null);
   const [param, setParam] = useState<InfiniteScrollParam>({
     state: InfiniteScrollState.stale,
     page: 0,
   });
+  const { isRefreshing, pullPosition } = usePullToRefresh(async () => {
+    console.log("Refreshing")
+    onRefresh?.()
+  }, pullMaxLength, pullThreshold)
 
   useEffect(() => {
-    controller?.({ resetPage })
+    onController?.({
+      resetPage: (reload: boolean = false) => {
+        setParam({
+          state: reload ? InfiniteScrollState.loading : InfiniteScrollState.stale,
+          page: 0,
+        })
+      }
+    })
 
     return () => {
-      controller?.(null)
+      onController?.(null)
     };
   }, []);
-
-  const resetPage = (reload: boolean = false) => {
-    setParam({
-      state: reload ? InfiniteScrollState.loading : InfiniteScrollState.stale,
-      page: 0,
-    })
-  }
 
   useEffect(() => {
     if (!anchor.current) return
@@ -62,33 +78,56 @@ function InfiniteScroll({
   useEffect(() => {
     if (param.state == InfiniteScrollState.loading) {
       (async () => {
-        const p = await loadMore(structuredClone(param))
+        const p = await onLoadMore(structuredClone(param))
         if (p.state == InfiniteScrollState.loading) p.state = InfiniteScrollState.stale
         setParam(p)
       })()
     }
   }, [param]);
 
-  const buildIndicator = () => {
-    switch (param.state) {
-      case InfiniteScrollState.loading:
-        return loadingView || <span>Loading...</span>
-      case InfiniteScrollState.noMore:
-        return noMoreView || <span>No more item!</span>
-      case InfiniteScrollState.empty:
-        return emptyView || <span>List is empty!</span>
-    }
-  }
+  const indicator = param.state == InfiniteScrollState.loading
+    ? loadingView || <span>Loading...</span>
+    : (param.state == InfiniteScrollState.noMore
+      ? noMoreView || <span>No more item!</span>
+      : (param.state == InfiniteScrollState.empty
+        ? emptyView || <span>List is empty!</span> : null))
+
+  const refresh = onRefresh
+    && (refreshView
+      ? refreshView(isRefreshing, pullPosition)
+      : <div style={{
+        position: "absolute",
+        bottom: "100%",
+        left: "0",
+        right: "0",
+        height: "100px",
+        padding: "1rem",
+        background: "white",
+        color: "black",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        transition: "transform 250ms ease-in",
+        transform: `translateY(${isRefreshing ? 100 : pullPosition}px)`,
+      }}>
+        Pull to refresh!
+      </div>)
 
   return (
-    <div className={className} style={style}>
+    <div className={className} style={{
+      ...style,
+      position: "relative",
+      overflow: "hidden",
+    }}>
       {isReverse ? <>
         <div ref={anchor} />
-        {buildIndicator()}
+        {indicator}
         {children}
+        {refresh}
       </> : <>
+        {refresh}
         {children}
-        {buildIndicator()}
+        {indicator}
         <div ref={anchor} />
       </>}
     </div>
