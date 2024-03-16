@@ -6,6 +6,7 @@ import { LoadMoreState } from "./types/load-more-state"
 import type { InfiniteScrollController } from "./types/infinite-scroll-controller"
 import type { LoadMoreParam } from "./types/load-more-param"
 import type Styleable from "./types/styleable"
+import Loader from "./components/loader"
 
 function InfiniteScroll({
   children,
@@ -86,16 +87,15 @@ function InfiniteScroll({
         bottom: "100%",
         left: "0",
         right: "0",
-        height: "100px",
-        padding: "1rem",
-        background: "white",
-        color: "black",
+        height: "40px",
+        padding: "8px",
+        boxSizing: 'border-box',
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
         transition: "transform 250ms ease-in",
-        transform: `translateY(${state ? 100 : pullPosition}px)`,
-      }}>Pull to refresh!</div>)
+        transform: `translateY(${state ? 40 : pullPosition}px)`,
+      }}><Loader /></div>)
 
   return (
     <div ref={element} className={className} style={{
