@@ -13,14 +13,18 @@ interface Post {
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
 
+  const loadData = async () => {
+    await new Promise((resolve, _) => setTimeout(resolve, 2000))
+    const res = await fetch("https://jsonplaceholder.typicode.com/posts");
+    return await res.json() as Post[]
+  }
   return (
-    <div>
+    <>
       <h1>Lorem ipsum dolor sit amet consectetur adipisicing elit. Quia rem libero nihil dicta, labore quos expedita necessitatibus illum, non temporibus dolorum atque magni aliquam ipsum dolores quod nemo corrupti! Sunt!</h1>
       <InfiniteScroll
         onLoadMore={async (param) => {
           console.log("Load More ...", param)
-          const res = await fetch("https://jsonplaceholder.typicode.com/posts");
-          const data = await res.json();
+          const data = await loadData();
           setPosts((prevPosts) => [...prevPosts, ...data]);
           param.page++
           if (param.page > 2) param.state = LoadMoreState.noMore
@@ -28,7 +32,10 @@ export default function Home() {
         }}
         onRefresh={async () => {
           console.log("Refreshing ...")
-          await new Promise((resolve, _) => setTimeout(resolve, 1000))
+          await new Promise((resolve, _) => setTimeout(resolve, 2000))
+          const data = await loadData();
+          setPosts(data);
+          return true
         }}>
         <ul>
           {posts.map((post, index) => (
@@ -41,6 +48,6 @@ export default function Home() {
           ))}
         </ul>
       </InfiniteScroll>
-    </div>
+    </>
   );
 }

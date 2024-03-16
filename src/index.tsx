@@ -16,9 +16,11 @@ function InfiniteScroll({
   onController,
   onLoadMore,
 
-  pullMaxLength = 100,
-  pullThreshold = 100,
-  refreshView,
+  pullStartMin,
+  pullMaxLength,
+  pullThreshold,
+  pullUseWindow,
+  pullView,
   onRefresh,
 
   style,
@@ -32,15 +34,27 @@ function InfiniteScroll({
   onController?: (controller: InfiniteScrollController | null) => void
   onLoadMore: (param: LoadMoreParam) => Promise<LoadMoreParam>
 
+  pullStartMin?: number;
   pullMaxLength?: number;
   pullThreshold?: number;
-  refreshView?: (state: PullToRefreshState, pullPosition: number) => React.ReactNode
-  onRefresh?: () => Promise<void>;
+  pullUseWindow?: boolean
+  pullView?: (state: PullToRefreshState, pullPosition: number) => React.ReactNode
+  onRefresh?: () => Promise<boolean>
 } & Styleable) {
   const { param, setParam, anchor } = useLoadMore<HTMLDivElement>(onLoadMore)
-  const { state, pullPosition, element } = usePullToRefresh<HTMLDivElement>(async () => {
-    await onRefresh?.()
-  }, pullMaxLength, pullThreshold)
+  const { state, pullPosition, element } = usePullToRefresh<HTMLDivElement>({
+    startMin: pullStartMin, 
+    maxLength: pullMaxLength, 
+    threshold: pullThreshold,
+    useWindow: pullUseWindow,
+    onRefresh: async () => {
+      const refreshed = await onRefresh?.()
+      if(refreshed) setParam({
+        state: LoadMoreState.stale,
+        page: 0,
+      })
+    }, 
+  })
 
   useEffect(() => {
     onController?.({
@@ -65,8 +79,8 @@ function InfiniteScroll({
         ? emptyView || <span>List is empty!</span> : null))
 
   const refresh = onRefresh
-    && (refreshView
-      ? refreshView(state, pullPosition)
+    && (pullView
+      ? pullView(state, pullPosition)
       : <div style={{
         position: "absolute",
         bottom: "100%",
@@ -81,9 +95,7 @@ function InfiniteScroll({
         alignItems: "center",
         transition: "transform 250ms ease-in",
         transform: `translateY(${state ? 100 : pullPosition}px)`,
-      }}>
-        Pull to refresh!
-      </div>)
+      }}>Pull to refresh!</div>)
 
   return (
     <div ref={element} className={className} style={{
