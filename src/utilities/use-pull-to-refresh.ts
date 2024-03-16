@@ -45,14 +45,14 @@ export const usePullToRefresh = <T extends HTMLElement>({
       const scrollY = useWindow
         ? window.scrollY
         : (element.current?.parentElement?.scrollTop || 0)
-      console.log(scrollY)
       if (scrollY < startMin)
         pullStartPosition.current = touch.screenY;
     }
 
-    const pulling = ({ targetTouches }: TouchEvent) => {
-      const touch = targetTouches[0];
+    const pulling = (e: TouchEvent) => {
+      const touch = e.targetTouches[0];
       if (!touch || pullStartPosition.current == 0) return;
+      e.preventDefault()
 
       const currentPullLength = pullStartPosition.current < touch.screenY
         ? Math.min(Math.abs(touch.screenY - pullStartPosition.current), maxLength)
@@ -69,9 +69,9 @@ export const usePullToRefresh = <T extends HTMLElement>({
       setState(PullToRefreshState.loading);
     }
 
-    el.addEventListener('touchstart', pullStart as any, { passive: true });
-    el.addEventListener('touchmove', pulling as any, { passive: true });
-    el.addEventListener('touchend', endPull, { passive: true });
+    el.addEventListener('touchstart', pullStart as any);
+    el.addEventListener('touchmove', pulling as any);
+    el.addEventListener('touchend', endPull);
 
     return () => {
       el.removeEventListener('touchstart', pullStart as any);
