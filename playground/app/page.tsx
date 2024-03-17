@@ -14,7 +14,7 @@ export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
 
   const loadData = async () => {
-    await new Promise((resolve, _) => setTimeout(resolve, 2000))
+    await new Promise((resolve) => setTimeout(resolve, 2000))
     const res = await fetch("https://jsonplaceholder.typicode.com/posts");
     return await res.json() as Post[]
   }
@@ -30,9 +30,8 @@ export default function Home() {
           if (param.page > 2) param.state = LoadMoreState.noMore
           return param
         }}
-        onRefresh={async () => {
+        onPull={async () => {
           console.log("Refreshing ...")
-          await new Promise((resolve, _) => setTimeout(resolve, 2000))
           const data = await loadData();
           setPosts(data);
           return true

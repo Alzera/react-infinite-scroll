@@ -22,7 +22,7 @@ function InfiniteScroll({
   pullThreshold,
   pullUseWindow,
   pullView,
-  onRefresh,
+  onPull,
 
   style,
   className,
@@ -40,7 +40,7 @@ function InfiniteScroll({
   pullThreshold?: number;
   pullUseWindow?: boolean
   pullView?: (state: PullToRefreshState, pullPosition: number) => React.ReactNode
-  onRefresh?: () => Promise<boolean>
+  onPull?: () => Promise<boolean>
 } & Styleable) {
   const { param, setParam, anchor } = useLoadMore<HTMLDivElement>(onLoadMore)
   const { state, pullPosition, element } = usePullToRefresh<HTMLDivElement>({
@@ -49,7 +49,7 @@ function InfiniteScroll({
     threshold: pullThreshold,
     useWindow: pullUseWindow,
     onRefresh: async () => {
-      const refreshed = await onRefresh?.()
+      const refreshed = await onPull?.()
       if(refreshed) setParam({
         state: LoadMoreState.stale,
         page: 0,
@@ -70,7 +70,7 @@ function InfiniteScroll({
     return () => {
       onController?.(null)
     };
-  }, []);
+  });
 
   const indicator = param.state == LoadMoreState.loading
     ? loadingView || <span>Loading...</span>
@@ -79,7 +79,7 @@ function InfiniteScroll({
       : (param.state == LoadMoreState.empty
         ? emptyView || <span>List is empty!</span> : null))
 
-  const refresh = onRefresh
+  const refresh = onPull
     && (pullView
       ? pullView(state, pullPosition)
       : <div style={{
