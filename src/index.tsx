@@ -70,7 +70,7 @@ function InfiniteScroll({
     return () => {
       onController?.(null)
     };
-  });
+  }, []);
 
   const indicator = param.state == LoadMoreState.loading
     ? loadingView || <span>Loading...</span>
